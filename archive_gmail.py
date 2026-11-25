@@ -70,7 +70,8 @@ def main():
 
     # 1. Conversations with any message newer than the cutoff (including your own
     #    sent replies) stay in the inbox.
-    imap.select(find_all_mail(imap), readonly=True)
+    all_mail = find_all_mail(imap)
+    imap.select(all_mail, readonly=True)
     recent_threads = set(thread_ids(imap, search(imap, f"newer_than:{days}d")).values())
 
     # 2. Old inbox messages, minus those in recently active conversations.
@@ -86,8 +87,14 @@ def main():
     if dry_run:
         print("DRY_RUN is on - nothing was changed.")
     else:
+        # Moving a message from INBOX to All Mail is exactly what Gmail's Archive does.
         for i in range(0, len(to_archive), CHUNK):
-            imap.uid("STORE", b",".join(to_archive[i:i + CHUNK]), "-X-GM-LABELS", r"(\Inbox)")
+            typ, resp = imap.uid("MOVE", b",".join(to_archive[i:i + CHUNK]), all_mail)
+            if typ != "OK":
+                sys.exit(f"Gmail refused to archive: {resp}")
+        left = [u for u in search(imap, query) if u in set(to_archive)]
+        if left:
+            sys.exit(f"{len(left)} message(s) are still in the inbox after archiving.")
         print(f"Archived {len(to_archive)} message(s).")
 
     imap.logout()
