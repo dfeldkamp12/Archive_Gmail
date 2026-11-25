@@ -1,32 +1,48 @@
-# Gmail Auto-Archive
+# Archive Gmail
 
-Automatically archives Gmail inbox conversations once their latest message is
-more than **5 days** old. Archived mail is not deleted. It stays in **All Mail**
-and in search results.
+Automatically archives Gmail inbox conversations once their latest message is more
+than **5 days** old. It runs every hour as a GitHub Actions workflow. Archived mail is
+not deleted; it stays in **All Mail** and in search.
 
-Runs as a Google Apps Script on Google's servers, hourly, for free.
+- Starred conversations are never archived.
+- A conversation with a reply in the last 5 days (including your own) stays in the inbox.
 
-## Setup (about 3 minutes)
+## Setup (one time)
 
-1. Go to <https://script.google.com> and click **New project**. Name it "Gmail Auto-Archive".
-2. Replace the contents of `Code.gs` with this repo's `Code.gs`.
-3. (Optional) Click ⚙️ **Project Settings**, check *Show "appsscript.json"*, and paste in `appsscript.json`.
-4. In the function dropdown pick **`preview`** and click **Run**. Approve the permissions
-   (Google will warn "unverified app". This is your own script, so click *Advanced → Go to project*).
-   The log lists what would be archived.
-5. Pick **`installTrigger`** and click **Run**. The script now runs every hour.
+### 1. Create a Google app password
+App passwords require **2-Step Verification** on your Google account.
 
-The first run on a large inbox may take a few hourly runs to catch up (each run is capped at about 5 minutes).
+1. Go to <https://myaccount.google.com/apppasswords>.
+2. Enter a name such as `Archive Gmail` and tap **Create**.
+3. Copy the 16-character password. You'll only see it once.
 
-## Settings (top of `Code.gs`)
+### 2. Add two GitHub secrets
+In this repo, go to **Settings → Secrets and variables → Actions → New repository secret**:
 
-| Setting | Default | Meaning |
-|---|---|---|
-| `DAYS_OLD` | `5` | Age threshold in days |
-| `SKIP_STARRED` | `true` | Never archive starred conversations |
-| `SKIP_IMPORTANT` | `false` | Never archive "important" conversations |
-| `SKIP_UNREAD` | `false` | Never archive unread conversations |
+| Name | Value |
+|---|---|
+| `GMAIL_ADDRESS` | your Gmail address |
+| `GMAIL_APP_PASSWORD` | the app password from step 1 |
+
+### 3. Test it
+Go to **Actions → Archive Gmail → Run workflow**. "Dry run" is checked by default, so
+the run only reports how many messages it *would* archive. Check the log, then run it
+again with "Dry run" unchecked to archive for real.
+
+After that it runs on its own every hour.
+
+## Settings
+Edit `.github/workflows/archive-gmail.yml`:
+
+- `DAYS_OLD`: age threshold in days
+- `SKIP_STARRED`: `"false"` to archive starred mail too
+- `cron`: how often it runs
 
 ## Stop it
+Go to **Actions → Archive Gmail → ⋯ → Disable workflow**. You can also revoke the app
+password at <https://myaccount.google.com/apppasswords>.
 
-Run **`removeTriggers`**, or delete the trigger under ⏰ **Triggers** in the left sidebar.
+## Notes
+- GitHub pauses scheduled workflows in a **public** repo after 60 days without commits.
+  If that happens, re-enable the workflow on the Actions page.
+- Private repos get 2,000 free Actions minutes a month. Hourly runs use about 720.
